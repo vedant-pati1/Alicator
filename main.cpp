@@ -1,9 +1,10 @@
+#include <cassert>
 #include <cstddef>
 #include <iostream>
 
 struct Block {
-  // single block consist of multiple chunks
-  void *start;
+  // single block consist of multiple chunks, each chunk is of 1 byte (one char)
+  char *start;
   size_t size;
 };
 struct Block_array {
@@ -12,6 +13,33 @@ struct Block_array {
   size_t size;
   size_t capacity; // as its memory is allocated by the user there has to be
                    // upper limit to the size
+
+  int get_block_index(Block *block) {
+    for (size_t i = 0; i < size; i++) {
+      if (block == (ptr + i))
+        return i;
+    }
+    return -1;
+  }
+
+  void remove_block(Block *block) {
+
+    int index = get_block_index(block);
+    if (index == -1)
+      return;
+    for (size_t i = index; i < size - 1; i++) {
+      ptr[i] = ptr[i + 1];
+    }
+
+    // size can never be -ve
+    assert(size > 0);
+    size--;
+  }
+
+  void merge_block() {
+    std::cout << "not implemented yet";
+    assert(false);
+  }
 };
 
 class Heap {
@@ -32,7 +60,6 @@ public:
 
     heap = ptr;
     heap_size = 0;
-
     if (capacity % chunk_size == 0)
       heap_capacity = capacity;
     else {
@@ -55,10 +82,62 @@ public:
   void print_free_list() {
     int count = 0;
     for (Block *ptr = free_list.ptr; ptr < (free_list.ptr + free_list.size);
-         ptr++)
-      std::cout << "Address of block " << count << " : " << ptr->start
+         ptr++) {
+
+      std::cout << "Address of block " << count << " : " << (void *)ptr->start
                 << " Size: " << ptr->size << std::endl;
-    count++;
+      count++;
+    }
+  }
+  void *Malloc(size_t size) {
+    if (size > heap_capacity - heap_size) {
+      std::cout << "Heap is full, cannot allocated this much memory";
+      return nullptr;
+    }
+    if (size == 0)
+      return nullptr;
+
+    //  iterate through free list and find chunk that fits our requirement
+    //  if chunk is of greater size than take required memory and reduce the
+    //  size of the block in the free_list
+
+    for (size_t i = 0; i < free_list.size; i++) {
+      if (free_list.ptr[i].size == size) {
+        // removed the block from free list
+        char *tmp = free_list.ptr[i].start;
+        free_list.remove_block(&free_list.ptr[i]);
+        return tmp;
+      } else if (free_list.ptr[i].size > size) {
+        char *tmp = free_list.ptr[i].start;
+
+        free_list.ptr[i].start = tmp + size;
+        free_list.ptr[i].size = free_list.ptr[i].size - size;
+
+        return tmp;
+      }
+    }
+    // now we have to merge some blocks if there is no readily avaiable block of
+    // >=size
+    free_list.merge_block(); // not implemented yet
+
+    // then try again to find
+    for (size_t i = 0; i < free_list.size; i++) {
+      if (free_list.ptr[i].size == size) {
+        // removed the block from free list
+        char *tmp = free_list.ptr[i].start;
+        free_list.remove_block(&free_list.ptr[i]);
+        return tmp;
+      } else if (free_list.ptr[i].size > size) {
+        char *tmp = free_list.ptr[i].start;
+
+        free_list.ptr[i].start = tmp + size;
+        free_list.ptr[i].size = free_list.ptr[i].size - size;
+
+        return tmp;
+      }
+    }
+    std::cout << "Algorithm inefficent to resolve the fragmentation";
+    return nullptr;
   }
 };
 
