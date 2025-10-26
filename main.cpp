@@ -1,4 +1,5 @@
 #include "heap.hpp"
+#include <stdatomic.h>
 
 int main() {
   char mem[1024];
@@ -11,8 +12,8 @@ int main() {
   Heap h(mem, 1024, b_arr);
 
   h.print_free_list();
-  h.Malloc(10);
+  void *a = h.Malloc(sizeof(int));
   h.print_free_list();
-  h.Malloc(123);
+  h.Free(a);
   h.print_free_list();
 }

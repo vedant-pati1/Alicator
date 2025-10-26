@@ -1,6 +1,7 @@
 #include <cassert>
 #include <cstddef>
 #include <cstdlib>
+#include <filesystem>
 #include <iostream>
 
 using std::cout;
@@ -29,7 +30,16 @@ struct Block_array {
     }
     return -1;
   }
+  Block *find_block_by_start_ptr(char *ptr) {
 
+    for (size_t i = 0; i < size; i++) {
+      if (this->ptr[i].start == ptr) {
+        return &(this->ptr[i]);
+      }
+    }
+    cout << "block with this start ptr does not exist in this block array";
+    return nullptr;
+  }
   void remove_block(Block *block) {
 
     int index = get_block_index(block);
@@ -58,15 +68,17 @@ struct Block_array {
     }
 
     int count = 0;
-    while (ptr->start >= block->start) {
-      if (ptr->start == block->start) {
+    Block *tmp = ptr;
+    while (tmp->start <= block->start) {
+      if (tmp->start == block->start) {
         cout << "block with same start value already exists in this block array"
              << endl;
         return;
       }
       count++;
+      tmp++;
     }
-    for (size_t i = size - 1; i > size - count; i--) {
+    for (size_t i = size; i > size - count; i--) {
       ptr[i] = ptr[i - 1];
     }
 
@@ -136,26 +148,24 @@ public:
 
   void print_free_list() {
     int count = 0;
+    cout << "==========================" << endl;
     cout << "free list" << endl;
-    cout << "-----------------------------------" << endl;
     for (size_t i = 0; i < free_list.size; i++) {
-      cout << "Block " << count
+      cout << "       Block " << count
            << " start address: " << (void *)free_list.ptr[i].start
            << " Size: " << free_list.ptr[i].size << std::endl;
       count++;
     }
-    cout << "-----------------------------------" << endl;
 
     count = 0;
     cout << endl << "alloc list" << endl;
-    cout << "-----------------------------------" << endl;
     for (size_t i = 0; i < alloc_list.size; i++) {
-      cout << "Block " << count
+      cout << "       Block " << count
            << " start address: " << (void *)alloc_list.ptr[i].start
            << " Size: " << alloc_list.ptr[i].size << std::endl;
       count++;
     }
-    cout << "-----------------------------------" << endl;
+    cout << "==========================" << endl;
   }
 
   void *Malloc(size_t size) {
@@ -214,5 +224,23 @@ public:
     std::cout << "Algorithm inefficent to resolve the fragmentation";
     return nullptr;
   }
-  void Free(void *ptr) {}
+  void Free(void *ptr) {
+    // 1. find block in alloc_list
+    // 2. clear the memory
+    // 3. reomve block from alloc_list
+    // 4. add block in the free_list
+    Block *block = alloc_list.find_block_by_start_ptr((char *)ptr);
+    if (block == nullptr)
+      return;
+
+    // memory cleaning
+    for (size_t i = 0; i < block->size; i++) {
+      block->start[i] = 0;
+    }
+
+    free_list.insert_block(block);
+    // now we can delete it from alloc_list
+
+    alloc_list.remove_block(block);
+  }
 };
