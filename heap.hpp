@@ -79,24 +79,41 @@ struct Block_array {
       return;
     }
 
-    int count = 0;
-    Block *tmp = ptr;
-    while (tmp->start <= block->start) {
-      if (tmp->start == block->start) {
+    // int count = 0;
+    // Block *tmp = ptr;
+    // while (tmp[count].start <= block->start) {
+    // if (tmp->start == block->start) {
+    // cout << "block with same start value already exists in this block array"
+    //<< endl;
+    // return;
+    //}
+    // count++;
+    //}
+    // for (size_t i = size; i > size - count - 1; i--) {
+    // ptr[i] = ptr[i - 1];
+    //}
+    //
+    // ptr[size - count - 1].start = block->start;
+    // ptr[size - count - 1].size = block->size;
+    //
+    // size++;
+    size_t insertion_idx = 0;
+    while (insertion_idx < size) {
+      if (ptr[insertion_idx].start == block->start) {
         cout << "block with same start value already exists in this block array"
              << endl;
         return;
-      }
-      count++;
-      tmp++;
+      } else if (ptr[insertion_idx].start > block->start)
+        break;
+
+      insertion_idx++;
     }
-    for (size_t i = size; i > size - count - 1; i--) {
+    for (size_t i = size; i > insertion_idx; i--) {
+
       ptr[i] = ptr[i - 1];
     }
-
-    ptr[size - count - 1].start = block->start;
-    ptr[size - count - 1].size = block->size;
-
+    ptr[insertion_idx].start = block->start;
+    ptr[insertion_idx].size = block->size;
     size++;
   }
 
@@ -122,8 +139,6 @@ struct Block_array {
         // they can be merged
         ptr[i].size += ptr[i + 1].size;
         remove_block(&ptr[i + 1]);
-        cout << size << endl;
-        this->print_block_arr();
       } else {
         i++;
       }
@@ -213,6 +228,7 @@ public:
         free_list.remove_block(&free_list.ptr[i]);
         Block b(tmp, size);
         alloc_list.insert_block(&b);
+        heap_size += size;
         return tmp;
 
       } else if (free_list.ptr[i].size > size) {
@@ -224,12 +240,13 @@ public:
                                free_list.ptr[i].size - size);
         Block b(tmp, size);
         alloc_list.insert_block(&b);
+        heap_size += size;
         return tmp;
       }
     }
     // now we have to merge some blocks if there is no readily avaiable block of
     // >=size
-    free_list.merge_blocks(); // not implemented yet
+    free_list.merge_blocks();
 
     // then try again to find
     for (size_t i = 0; i < free_list.size; i++) {
@@ -237,13 +254,21 @@ public:
         // removed the block from free list
         char *tmp = free_list.ptr[i].start;
         free_list.remove_block(&free_list.ptr[i]);
+        Block b(tmp, size);
+        alloc_list.insert_block(&b);
+        heap_size += size;
         return tmp;
+
       } else if (free_list.ptr[i].size > size) {
         char *tmp = free_list.ptr[i].start;
 
-        free_list.ptr[i].start = tmp + size;
-        free_list.ptr[i].size = free_list.ptr[i].size - size;
-
+        // free_list.ptr[i].start = tmp + size;
+        // free_list.ptr[i].size = free_list.ptr[i].size - size;
+        free_list.update_block(&free_list.ptr[i], tmp + size,
+                               free_list.ptr[i].size - size);
+        Block b(tmp, size);
+        alloc_list.insert_block(&b);
+        heap_size += size;
         return tmp;
       }
     }
@@ -268,11 +293,7 @@ public:
     // now we can delete it from alloc_list
 
     alloc_list.remove_block(block);
+    heap_size -= block->size;
   }
-  void Merge() {
-    free_list.merge_blocks();
-
-    cout << "END OF FREE LIST HERE Merge" << endl;
-    alloc_list.merge_blocks();
-  }
+  void merge_free_list() { free_list.merge_blocks(); }
 };

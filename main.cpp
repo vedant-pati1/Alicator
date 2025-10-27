@@ -9,11 +9,15 @@ int main() {
   b_arr.capacity = 20;
 
   Heap h(mem, 10, b_arr);
-
+  std::cout << "Initial Free List" << std::endl;
   h.print_free_list();
   void *a = h.Malloc(sizeof(int));
+  std::cout << "After allocation of int" << std::endl;
   h.print_free_list();
   h.Free(a);
-  h.Merge();
+  std::cout << "Aftering freeing that int" << std::endl;
+  h.print_free_list();
+  h.merge_free_list();
+  std::cout << "After merging the free lisr" << std::endl;
   h.print_free_list();
 }
