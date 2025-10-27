@@ -30,6 +30,18 @@ struct Block_array {
     }
     return -1;
   }
+  void print_block_arr() {
+    int count = 0;
+    cout << "==========================" << endl;
+    cout << "Block Array" << endl;
+    for (size_t i = 0; i < size; i++) {
+      cout << "       Block " << count
+           << " start address: " << (void *)ptr[i].start
+           << " Size: " << ptr[i].size << std::endl;
+      count++;
+    }
+    std::flush(std::cout);
+  }
   Block *find_block_by_start_ptr(char *ptr) {
 
     for (size_t i = 0; i < size; i++) {
@@ -56,11 +68,11 @@ struct Block_array {
 
   void insert_block(Block *block) {
     if (size + 1 > capacity) {
-      cout << "Bloc array is full" << endl;
+      cout << "Block array is full" << endl;
       return;
     }
     if (size == 0) {
-      // handle size == 0 separatley, becasue size-1 for type size_t overflows
+      // handle size == 0 separately, becasue size-1 for type size_t overflows
       ptr[0].size = block->size;
       ptr[0].start = block->start;
       size++;
@@ -78,12 +90,12 @@ struct Block_array {
       count++;
       tmp++;
     }
-    for (size_t i = size; i > size - count; i--) {
+    for (size_t i = size; i > size - count - 1; i--) {
       ptr[i] = ptr[i - 1];
     }
 
-    ptr[size - count].start = block->start;
-    ptr[size - count].size = block->size;
+    ptr[size - count - 1].start = block->start;
+    ptr[size - count - 1].size = block->size;
 
     size++;
   }
@@ -100,8 +112,22 @@ struct Block_array {
   }
 
   void merge_blocks() {
-    cout << "not implemented yet";
-    assert(false);
+    // we need to merge adjacent blocks so that we get less divison in blocks
+    // and size of themerged block will be bigger.
+    if (size < 2)
+      return;
+    size_t i = 0;
+    while (i < size - 1) {
+      if ((ptr[i].start + ptr[i].size) == ptr[i + 1].start) {
+        // they can be merged
+        ptr[i].size += ptr[i + 1].size;
+        remove_block(&ptr[i + 1]);
+        cout << size << endl;
+        this->print_block_arr();
+      } else {
+        i++;
+      }
+    }
   }
 };
 
@@ -242,5 +268,11 @@ public:
     // now we can delete it from alloc_list
 
     alloc_list.remove_block(block);
+  }
+  void Merge() {
+    free_list.merge_blocks();
+
+    cout << "END OF FREE LIST HERE Merge" << endl;
+    alloc_list.merge_blocks();
   }
 };
