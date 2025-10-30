@@ -79,24 +79,6 @@ struct Block_array {
       return;
     }
 
-    // int count = 0;
-    // Block *tmp = ptr;
-    // while (tmp[count].start <= block->start) {
-    // if (tmp->start == block->start) {
-    // cout << "block with same start value already exists in this block array"
-    //<< endl;
-    // return;
-    //}
-    // count++;
-    //}
-    // for (size_t i = size; i > size - count - 1; i--) {
-    // ptr[i] = ptr[i - 1];
-    //}
-    //
-    // ptr[size - count - 1].start = block->start;
-    // ptr[size - count - 1].size = block->size;
-    //
-    // size++;
     size_t insertion_idx = 0;
     while (insertion_idx < size) {
       if (ptr[insertion_idx].start == block->start) {
@@ -149,7 +131,7 @@ struct Block_array {
 class Heap {
 
 private:
-  static constexpr size_t chunk_size = sizeof(char *);
+  static constexpr size_t chunk_size = sizeof(void *);
   char *heap;
   size_t heap_capacity;
   size_t heap_size;
@@ -210,37 +192,43 @@ public:
   }
 
   void *Malloc(size_t size) {
-    if (size > heap_capacity - heap_size) {
+    if (size == 0)
+      return nullptr;
+
+    size_t aligned_size = size;
+
+    if (aligned_size % chunk_size != 0) {
+
+      aligned_size = aligned_size + (chunk_size - (aligned_size % chunk_size));
+    }
+
+    if (aligned_size > heap_capacity - heap_size) {
       std::cout << "Heap is full, cannot allocated this much memory";
       return nullptr;
     }
-    if (size == 0)
-      return nullptr;
 
     //  iterate through free list and find chunk that fits our requirement
     //  if chunk is of greater size than take required memory and reduce the
     //  size of the block in the free_list
 
     for (size_t i = 0; i < free_list.size; i++) {
-      if (free_list.ptr[i].size == size) {
+      if (free_list.ptr[i].size == aligned_size) {
         // removed the block from free list
         char *tmp = free_list.ptr[i].start;
         free_list.remove_block(&free_list.ptr[i]);
-        Block b(tmp, size);
+        Block b(tmp, aligned_size);
         alloc_list.insert_block(&b);
-        heap_size += size;
+        heap_size += aligned_size;
         return tmp;
 
-      } else if (free_list.ptr[i].size > size) {
+      } else if (free_list.ptr[i].size > aligned_size) {
         char *tmp = free_list.ptr[i].start;
 
-        // free_list.ptr[i].start = tmp + size;
-        // free_list.ptr[i].size = free_list.ptr[i].size - size;
-        free_list.update_block(&free_list.ptr[i], tmp + size,
-                               free_list.ptr[i].size - size);
-        Block b(tmp, size);
+        free_list.update_block(&free_list.ptr[i], tmp + aligned_size,
+                               free_list.ptr[i].size - aligned_size);
+        Block b(tmp, aligned_size);
         alloc_list.insert_block(&b);
-        heap_size += size;
+        heap_size += aligned_size;
         return tmp;
       }
     }
@@ -250,25 +238,23 @@ public:
 
     // then try again to find
     for (size_t i = 0; i < free_list.size; i++) {
-      if (free_list.ptr[i].size == size) {
+      if (free_list.ptr[i].size == aligned_size) {
         // removed the block from free list
         char *tmp = free_list.ptr[i].start;
         free_list.remove_block(&free_list.ptr[i]);
-        Block b(tmp, size);
+        Block b(tmp, aligned_size);
         alloc_list.insert_block(&b);
-        heap_size += size;
+        heap_size += aligned_size;
         return tmp;
 
-      } else if (free_list.ptr[i].size > size) {
+      } else if (free_list.ptr[i].size > aligned_size) {
         char *tmp = free_list.ptr[i].start;
 
-        // free_list.ptr[i].start = tmp + size;
-        // free_list.ptr[i].size = free_list.ptr[i].size - size;
-        free_list.update_block(&free_list.ptr[i], tmp + size,
-                               free_list.ptr[i].size - size);
-        Block b(tmp, size);
+        free_list.update_block(&free_list.ptr[i], tmp + aligned_size,
+                               free_list.ptr[i].size - aligned_size);
+        Block b(tmp, aligned_size);
         alloc_list.insert_block(&b);
-        heap_size += size;
+        heap_size += aligned_size;
         return tmp;
       }
     }
