@@ -1,7 +1,9 @@
+
+#pragma once
+
 #include <cassert>
 #include <cstddef>
 #include <cstdlib>
-#include <filesystem>
 #include <iostream>
 
 using std::cout;
